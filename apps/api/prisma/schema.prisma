@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MANAGER
+  TENANT
+}
+
+enum UnitStatus {
+  VACANT
+  OCCUPIED
+}
+
+enum LeaseStatus {
+  ACTIVE
+  ENDED
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id               String               @id @default(uuid())
+  email            String               @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  phone            String?
+  role             Role                 @default(TENANT)
+  refreshTokenHash String?
+  leases           Lease[]
+  requests         MaintenanceRequest[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+model Property {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  city      String
+  notes     String?
+  units     Unit[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Unit {
+  id         String               @id @default(uuid())
+  propertyId String
+  property   Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  unitNumber String
+  bedrooms   Int
+  rentAmount Decimal              @db.Decimal(10, 2)
+  status     UnitStatus           @default(VACANT)
+  leases     Lease[]
+  requests   MaintenanceRequest[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@unique([propertyId, unitNumber])
+}
+
+model Lease {
+  id          String      @id @default(uuid())
+  unitId      String
+  unit        Unit        @relation(fields: [unitId], references: [id])
+  tenantId    String
+  tenant      User        @relation(fields: [tenantId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  monthlyRent Decimal     @db.Decimal(10, 2)
+  status      LeaseStatus @default(ACTIVE)
+  payments    Payment[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([tenantId])
+  @@index([unitId])
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  leaseId     String
+  lease       Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(10, 2)
+  paidAt      DateTime
+  periodMonth String // "YYYY-MM"
+  method      String // cash / transfer / check
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([leaseId, periodMonth])
+}
+
+model MaintenanceRequest {
+  id          String            @id @default(uuid())
+  unitId      String
+  unit        Unit              @relation(fields: [unitId], references: [id])
+  tenantId    String
+  tenant      User              @relation(fields: [tenantId], references: [id])
+  title       String
+  description String
+  priority    Priority          @default(MEDIUM)
+  status      MaintenanceStatus @default(OPEN)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status])
+}
