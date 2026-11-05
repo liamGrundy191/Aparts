@@ -2,7 +2,7 @@ import type { AuthUser } from '@aparts/shared';
 import axios, { HttpStatusCode } from 'axios';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginRequest, setAccessToken } from '../api/client';
+import { loginRequest, logoutRequest, setAccessToken } from '../api/client';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -10,6 +10,7 @@ interface AuthContextValue {
   setUser: (user: AuthUser | null) => void;
   login: (email: string, password: string) => Promise<void>;
   error: string;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -36,8 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const logout = async () => {
+    try {
+      await logoutRequest();
+    } catch {
+      // so error doesnt show up in console
+    } finally {
+      setUser(null);
+      setAccessToken(null);
+      navigate('/login');
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, setUser, login, error }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, setUser, login, error, logout }}>{children}</AuthContext.Provider>
   );
 }
 

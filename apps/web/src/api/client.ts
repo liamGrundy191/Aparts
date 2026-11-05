@@ -23,5 +23,9 @@ export const loginRequest = async (email: string, password: string): Promise<Aut
   return res.data;
 };
 
+export const logoutRequest = async (): Promise<void> => {
+  await api.post('/auth/logout');
+};
+
 // TODO (milestone 2): add a response interceptor that calls POST /auth/refresh on 401,
 // stores the new access token, and retries the original request once.
