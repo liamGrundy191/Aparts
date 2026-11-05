@@ -1,10 +1,88 @@
+import { useState, type SubmitEvent } from 'react';
+import { loginSchema } from '@aparts/shared';
+import { useAuth } from '../auth/AuthContext';
+
+const inputClass =
+  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-900 focus:ring-1 focus:ring-gray-900';
+
+// Neutral until touched; green when valid; red only after the user leaves the field.
+function fieldClass(value: string, valid: boolean, touched: boolean) {
+  if (valid) return `${inputClass} border-green-500 focus:border-green-600 focus:ring-green-600`;
+  if (touched && value) return `${inputClass} border-red-400 focus:border-red-500 focus:ring-red-500`;
+  return inputClass;
+}
+
 export default function LoginPage() {
-  // TODO (milestone 2): React Hook Form + loginSchema from @aparts/shared, POST /auth/login
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const { error, login } = useAuth();
+  const emailValid = loginSchema.shape.email.safeParse(email).success;
+  const passwordValid = loginSchema.shape.password.safeParse(password).success;
+  const showEmailError = touched.email && !!email && !emailValid;
+  const showPasswordError = touched.password && !!password && !passwordValid;
+
+  const onSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await login(email, password);
+    setIsLoading(false);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow">
-        <h1 className="mb-1 text-2xl font-semibold">Aparts</h1>
-        <p className="text-sm text-gray-500">Login form goes here.</p>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <svg viewBox="0 0 24 24" className="h-10 w-10 text-gray-900" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+            <path d="M3 10.5 12 3l9 7.5V21H3z" strokeLinejoin="round" />
+            <path d="M9 21v-6h6v6" strokeLinejoin="round" />
+          </svg>
+          <h1 className="text-xl font-semibold">Aparts</h1>
+          <p className="text-sm text-gray-500">Welcome back</p>
+        </div>
+
+        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          <label className="flex flex-col gap-1 text-sm">
+            Email
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+              aria-invalid={showEmailError}
+              className={fieldClass(email, emailValid, touched.email)}
+            />
+            {showEmailError && <span className="text-xs text-red-600">Enter a valid email address</span>}
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            Password
+            <input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+              aria-invalid={showPasswordError}
+              className={fieldClass(password, passwordValid, touched.password)}
+            />
+            {showPasswordError && <span className="text-xs text-red-600">At least 8 characters</span>}
+          </label>
+
+          <button
+            type="submit"
+            disabled={!email || !password || showPasswordError || showEmailError || isLoading}
+            className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-gray-900 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          >
+            {isLoading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />}
+            Log in
+          </button>
+          {error && <p className="text-red-600">{error}</p>}
+        </form>
       </div>
     </div>
   );
