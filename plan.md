@@ -206,3 +206,16 @@ Swagger docs are served at `/api/docs`. List endpoints get simple pagination (`?
 - `docker compose -f docker-compose.prod.yml up --build` runs the full stack
 - CI is green on every push to `main`
 - Manual check on the live URL: log in as the demo manager and create a property → unit → tenant → lease → payment; log in as the tenant and see the lease and payment, submit a maintenance request; the manager marks it `DONE`
+
+## 11. Auth follow-ups
+
+Small issues found in the review of `feat/auth`. None of them block the MVP.
+
+- [ ] **Redirect logged-in users away from `/login`.** `/` always goes to `/login`, and `RoleRoute` sends a user with the wrong role to `/`, so a logged-in tenant who opens `/manager` lands on the login page. Send logged-in users to `/${user.role.toLowerCase()}` instead (`App.tsx`, `auth/guards.tsx`, `LoginPage.tsx`).
+- [ ] **Web lint fails locally.** `apps/web/eslint.config.js` ignores `dist` but not Vite's `.vite/` cache. Change `ignores: ['dist']` to `['dist', '.vite']`.
+- [ ] **`react-hooks/exhaustive-deps` warning** in `AuthContext.tsx` (the mount `useEffect` doesn't list `logoutUtil`). Either keep it and add an eslint-disable comment explaining it should run once on mount, or wrap `logoutUtil` in `useCallback`.
+- [ ] **Login timing reveals which emails exist.** When the email is unknown, `AuthService.login` skips `bcrypt.compare`, so it answers faster. Compare against a dummy hash in that case.
+- [ ] **No rate limiting on `POST /auth/login`.** Add `@nestjs/throttler` (v2 is fine).
+- [ ] **Logout returns 500 for a deleted user.** `setRefreshTokenHash` uses `update`, which throws if the user no longer exists. Use `updateMany`, or catch Prisma's `P2025` error.
+- [ ] **`UsersService` unit tests are still `it.todo`** (`users.service.spec.ts`).
+- Accepted trade-off: an access token stays valid for up to 15 minutes after logout or after the user is deleted, because `JwtStrategy` doesn't look the user up.
