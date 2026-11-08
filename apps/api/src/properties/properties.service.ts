@@ -61,7 +61,7 @@ export class PropertiesService {
       this.prisma.property.findMany({
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: 'desc', id: 'asc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         include: {
           _count: {
             select: {
