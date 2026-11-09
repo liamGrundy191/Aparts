@@ -17,6 +17,11 @@
 
     /* Linting */
     "strict": true,
+
+    /* Path alias (shadcn/ui expects @/) */
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] },
+
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
