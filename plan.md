@@ -212,10 +212,22 @@ Swagger docs are served at `/api/docs`. List endpoints get simple pagination (`?
 Small issues found in the review of `feat/auth`. None of them block the MVP.
 
 - [ ] **Redirect logged-in users away from `/login`.** `/` always goes to `/login`, and `RoleRoute` sends a user with the wrong role to `/`, so a logged-in tenant who opens `/manager` lands on the login page. Send logged-in users to `/${user.role.toLowerCase()}` instead (`App.tsx`, `auth/guards.tsx`, `LoginPage.tsx`).
-- [ ] **Web lint fails locally.** `apps/web/eslint.config.js` ignores `dist` but not Vite's `.vite/` cache. Change `ignores: ['dist']` to `['dist', '.vite']`.
+- [x] **Web lint fails locally.** `apps/web/eslint.config.js` ignores `dist` but not Vite's `.vite/` cache. Change `ignores: ['dist']` to `['dist', '.vite']`.
 - [ ] **`react-hooks/exhaustive-deps` warning** in `AuthContext.tsx` (the mount `useEffect` doesn't list `logoutUtil`). Either keep it and add an eslint-disable comment explaining it should run once on mount, or wrap `logoutUtil` in `useCallback`.
 - [ ] **Login timing reveals which emails exist.** When the email is unknown, `AuthService.login` skips `bcrypt.compare`, so it answers faster. Compare against a dummy hash in that case.
 - [ ] **No rate limiting on `POST /auth/login`.** Add `@nestjs/throttler` (v2 is fine).
 - [ ] **Logout returns 500 for a deleted user.** `setRefreshTokenHash` uses `update`, which throws if the user no longer exists. Use `updateMany`, or catch Prisma's `P2025` error.
 - [ ] **`UsersService` unit tests are still `it.todo`** (`users.service.spec.ts`).
 - Accepted trade-off: an access token stays valid for up to 15 minutes after logout or after the user is deleted, because `JwtStrategy` doesn't look the user up.
+
+## 12. v2: Property images (S3)
+
+The MVP shows a generated placeholder on each property card. Real image uploads come after the MVP is deployed.
+
+- **Storage:** S3, or an S3-compatible service like Cloudflare R2. Render and Railway disks are wiped on every deploy, so files can't live on the API server.
+- **Upload flow:** the API issues a presigned PUT URL (`POST /properties/:id/image/upload-url`). The browser uploads directly to S3, then the API saves the object key on the property. Files never pass through the API.
+- **Schema:** add `imageKey String?` to `Property`, plus a migration. Build the public URL (or a presigned GET URL for a private bucket) when returning properties.
+- **Validation:** check the content type (jpeg/png/webp) and the size limit (around 5 MB) when issuing the URL. Restrict them in the bucket's CORS too.
+- **Cleanup:** delete the S3 object when the property is deleted or its image is replaced.
+- **Frontend:** a file picker with a preview on the property form. Show the image on the card, and fall back to the placeholder.
+- **Config:** add the bucket, region and credentials as env vars, and update `.env.example`.
