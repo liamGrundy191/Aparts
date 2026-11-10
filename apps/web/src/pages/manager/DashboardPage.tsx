@@ -1,16 +1,29 @@
 import { Pagination } from '@/components/Pagination';
-import { PropertyCard } from '@/components/PropertyCard';
+import { PropertyCard, PropertyCardSkeleton } from '@/components/PropertyCard';
 import { PropertyFormDialog } from '@/components/PropertyFormDialog';
 import { Button } from '@/components/ui/button';
 import { useCreateProperty, useProperties } from '@/hooks/useProperty';
 import { getErrorMessage } from '@/lib/errors';
+import { cn } from '@/lib/utils';
 import type { CreatePropertyInput } from '@aparts/shared';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
+
+const Grid = ({ children, dimmed }: { children: ReactNode; dimmed?: boolean }) => (
+  <div
+    className={cn(
+      'mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 transition-opacity',
+      dimmed && 'opacity-50',
+    )}
+  >
+    {children}
+  </div>
+);
 
 export default function DashboardPage() {
   const [page, setPage] = useState<number>(1);
   const [open, setOpen] = useState<boolean>(false);
-  const { data, isPending, isError, error } = useProperties(page);
+  const { data, isPending, isError, error, isPlaceholderData } = useProperties(page);
   const {
     mutate,
     reset: resetCreate,
@@ -22,8 +35,40 @@ export default function DashboardPage() {
     mutate(values, {
       onSuccess: () => {
         setOpen(false);
+        toast.success('Successfully added property');
       },
     });
+  };
+
+  const renderProperties = () => {
+    if (isError)
+      return <p className="mt-6">error getting your properties: {getErrorMessage(error)}</p>;
+    if (isPending)
+      return (
+        <Grid>
+          {Array.from({ length: 10 }, (_, i) => (
+            <PropertyCardSkeleton key={i} />
+          ))}
+        </Grid>
+      );
+    if (data.data.length === 0)
+      return (
+        <p className="mt-6">no properties found to show, add properties to start tracking them</p>
+      );
+    return (
+      <Grid dimmed={isPlaceholderData}>
+        {data.data.map((property) => (
+          <PropertyCard
+            key={property.id}
+            id={property.id}
+            name={property.name}
+            city={property.city}
+            address={property.address}
+            unitCount={property._count.units}
+          />
+        ))}
+      </Grid>
+    );
   };
 
   return (
@@ -46,31 +91,10 @@ export default function DashboardPage() {
           Add Property
         </Button>
       </div>
-      {isPending && <p className="mt-6">Loading...</p>}
-      {isError && <p className="mt-6">error getting your properties: {error.message}</p>}
-      <div
-        id="properties"
-        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-      >
-        {data?.data &&
-          data.data.map((property) => (
-            <PropertyCard
-              key={property.id}
-              id={property.id}
-              name={property.name}
-              city={property.city}
-              address={property.address}
-              unitCount={property._count.units}
-            />
-          ))}
-      </div>
+      {renderProperties()}
       <div id="pagination" className="mt-8">
         {data?.meta && (
-          <Pagination
-            totalPages={data.meta.totalPages}
-            page={page}
-            onPageChange={setPage}
-          />
+          <Pagination totalPages={data.meta.totalPages} page={page} onPageChange={setPage} />
         )}
       </div>
     </div>
