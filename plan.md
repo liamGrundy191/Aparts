@@ -211,7 +211,7 @@ Swagger docs are served at `/api/docs`. List endpoints get simple pagination (`?
 
 Small issues found in the review of `feat/auth`. None of them block the MVP.
 
-- [ ] **Redirect logged-in users away from `/login`.** `/` always goes to `/login`, and `RoleRoute` sends a user with the wrong role to `/`, so a logged-in tenant who opens `/manager` lands on the login page. Send logged-in users to `/${user.role.toLowerCase()}` instead (`App.tsx`, `auth/guards.tsx`, `LoginPage.tsx`).
+- [x] **Redirect logged-in users away from `/login`.** `/` always goes to `/login`, and `RoleRoute` sends a user with the wrong role to `/`, so a logged-in tenant who opens `/manager` lands on the login page. Send logged-in users to `/${user.role.toLowerCase()}` instead (`App.tsx`, `auth/guards.tsx`, `LoginPage.tsx`).
 - [x] **Web lint fails locally.** `apps/web/eslint.config.js` ignores `dist` but not Vite's `.vite/` cache. Change `ignores: ['dist']` to `['dist', '.vite']`.
 - [ ] **`react-hooks/exhaustive-deps` warning** in `AuthContext.tsx` (the mount `useEffect` doesn't list `logoutUtil`). Either keep it and add an eslint-disable comment explaining it should run once on mount, or wrap `logoutUtil` in `useCallback`.
 - [ ] **Login timing reveals which emails exist.** When the email is unknown, `AuthService.login` skips `bcrypt.compare`, so it answers faster. Compare against a dummy hash in that case.

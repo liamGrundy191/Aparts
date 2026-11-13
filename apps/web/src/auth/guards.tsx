@@ -21,6 +21,7 @@ export function ProtectedRoute() {
 
 export function RoleRoute({ role }: { role: Role }) {
   const { user } = useAuth();
-  if (user?.role !== role) return <Navigate to="/" replace />;
+  // Wrong role: go to your own home, not the login page
+  if (user && user.role !== role) return <Navigate to={`/${user.role.toLowerCase()}`} replace />;
   return <Outlet />;
 }

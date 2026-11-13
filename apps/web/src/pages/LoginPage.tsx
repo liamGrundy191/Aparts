@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from 'react';
 import { loginSchema } from '@aparts/shared';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '@/components/ui/button';
 
@@ -19,11 +20,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [touched, setTouched] = useState({ email: false, password: false });
-  const { error, login } = useAuth();
+  const { error, login, user, isLoading: authLoading } = useAuth();
   const emailValid = loginSchema.shape.email.safeParse(email).success;
   const passwordValid = loginSchema.shape.password.safeParse(password).success;
   const showEmailError = touched.email && !!email && !emailValid;
   const showPasswordError = touched.password && !!password && !passwordValid;
+
+  // Already logged in (e.g. via "/" or a wrong-role redirect): go home instead of showing the form
+  if (authLoading) return null;
+  if (user) return <Navigate to={`/${user.role.toLowerCase()}`} replace />;
 
   const onSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
