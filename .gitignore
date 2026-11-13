@@ -19,3 +19,10 @@ coverage/
 .github/agents/
 .github/hooks/
 .impeccable/
+PRODUCT.md
+
+# Personal AI-assistant instructions (local only)
+CLAUDE.md
+
+# Sprint working notes (local only)
+SPRINT-*
