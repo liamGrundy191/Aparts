@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createPropertySchema, type CreatePropertyInput } from '@aparts/shared';
@@ -39,13 +39,13 @@ export function PropertyFormDialog({
   error,
   defaultValues,
   title = 'Add property',
-  submitLabel = 'Create',
+  submitLabel = 'Add',
 }: PropertyFormDialogProps) {
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreatePropertyInput>({
     resolver: zodResolver(createPropertySchema),
     defaultValues: { ...emptyValues, ...defaultValues },
@@ -56,6 +56,19 @@ export function PropertyFormDialog({
     if (open) reset({ ...emptyValues, ...defaultValues });
   }, [open, defaultValues, reset]);
 
+  // A ref, not the isSubmitting prop: the prop only updates after the next render,
+  // so a fast double-click would still submit twice.
+  const submitted = useRef(false);
+  useEffect(() => {
+    if (!isSubmitting) submitted.current = false;
+  }, [isSubmitting, open]);
+
+  const submitOnce = (values: CreatePropertyInput) => {
+    if (submitted.current) return;
+    submitted.current = true;
+    onSubmit(values);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -64,7 +77,7 @@ export function PropertyFormDialog({
           <DialogDescription>Fill in the property details.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(submitOnce)} noValidate className="flex flex-col gap-4">
           <FormField id="name" label="Name" error={errors.name?.message}>
             <Input id="name" aria-invalid={!!errors.name} autoFocus {...register('name')} />
           </FormField>
@@ -89,8 +102,8 @@ export function PropertyFormDialog({
 
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : submitLabel}
+            <Button type="submit" isLoading={isSubmitting} disabled={!isDirty}>
+              {submitLabel}
             </Button>
           </DialogFooter>
         </form>

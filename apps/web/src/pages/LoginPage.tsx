@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react';
 import { loginSchema } from '@aparts/shared';
 import { useAuth } from '../auth/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-900 focus:ring-1 focus:ring-gray-900';
@@ -73,14 +74,14 @@ export default function LoginPage() {
             {showPasswordError && <span className="text-xs text-red-600">At least 8 characters</span>}
           </label>
 
-          <button
+          <Button
             type="submit"
-            disabled={!email || !password || showPasswordError || showEmailError || isLoading}
-            className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-gray-900 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            isLoading={isLoading}
+            disabled={!email || !password || showPasswordError || showEmailError}
+            className="mt-2"
           >
-            {isLoading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />}
             Log in
-          </button>
+          </Button>
           {error && <p className="text-red-600">{error}</p>}
         </form>
       </div>

@@ -48,7 +48,13 @@ export class PropertiesService {
   async getProperty(id: string) {
     const res = await this.prisma.property.findUnique({
       where: { id },
-      include: { units: true },
+      include: {
+        units: {
+          orderBy: {
+            unitNumber: 'asc',
+          },
+        },
+      },
     });
     if (!res) {
       throw new NotFoundException();

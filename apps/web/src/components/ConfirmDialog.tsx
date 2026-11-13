@@ -36,6 +36,8 @@ export function ConfirmDialog({
     try {
       await onConfirm();
       setOpen(false);
+    } catch {
+      // stay open; the caller already showed the error (toast)
     } finally {
       setPending(false);
     }

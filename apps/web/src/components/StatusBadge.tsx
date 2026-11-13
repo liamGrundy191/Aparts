@@ -1,6 +1,5 @@
 import { UnitStatus } from '@aparts/shared';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 const STYLES: Record<UnitStatus, { label: string; className: string }> = {
   [UnitStatus.VACANT]: { label: 'Vacant', className: 'bg-amber-100 text-amber-800' },
@@ -9,5 +8,5 @@ const STYLES: Record<UnitStatus, { label: string; className: string }> = {
 
 export function StatusBadge({ status }: { status: UnitStatus }) {
   const { label, className } = STYLES[status];
-  return <Badge className={cn(className)}>{label}</Badge>;
+  return <Badge className={className}>{label}</Badge>;
 }
