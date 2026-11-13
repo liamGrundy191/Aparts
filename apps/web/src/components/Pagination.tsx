@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 interface PaginationProps {
   page: number;
@@ -17,7 +17,11 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
       <span className="text-sm text-muted-foreground">
         Page {page} of {totalPages}
       </span>
-      <Button variant="outline" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+      <Button
+        variant="outline"
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(page + 1)}
+      >
         Next
       </Button>
     </nav>
