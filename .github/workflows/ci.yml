@@ -28,6 +28,8 @@ jobs:
       DATABASE_URL: postgresql://aparts:aparts@localhost:5432/aparts?schema=public
       JWT_ACCESS_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
 
     steps:
       - uses: actions/checkout@v4
