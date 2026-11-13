@@ -27,9 +27,15 @@ api.interceptors.request.use((config) => {
 
 // On a 401, refresh the access token and retry the original request once.
 api.interceptors.response.use(undefined, async (error) => {
-  const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
+  const original = error.config as
+    (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
   const isAuthCall = original?.url === '/auth/refresh' || original?.url === '/auth/login';
-  if (error.response?.status !== HttpStatusCode.Unauthorized || !original || original._retried || isAuthCall) {
+  if (
+    error.response?.status !== HttpStatusCode.Unauthorized ||
+    !original ||
+    original._retried ||
+    isAuthCall
+  ) {
     throw error;
   }
   original._retried = true;
@@ -43,7 +49,7 @@ api.interceptors.response.use(undefined, async (error) => {
 });
 
 export const loginRequest = async (email: string, password: string): Promise<AuthResponse> => {
-  const res: AxiosResponse<AuthResponse> = await api.post("/auth/login", { email, password });
+  const res: AxiosResponse<AuthResponse> = await api.post('/auth/login', { email, password });
   setAccessToken(res.data.accessToken);
   return res.data;
 };

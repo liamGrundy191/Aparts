@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import DashboardPage from './pages/manager/DashboardPage';
 import MyLeasePage from './pages/tenant/MyLeasePage';
+import PropertyPage from './pages/manager/PropertyPage';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route element={<RoleRoute role={Role.MANAGER} />}>
             <Route path="/manager" element={<DashboardPage />} />
+            <Route path="/manager/properties/:id" element={<PropertyPage />} />
             {/* properties, units, tenants, leases, payments, maintenance */}
           </Route>
 

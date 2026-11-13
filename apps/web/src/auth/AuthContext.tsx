@@ -2,7 +2,13 @@ import type { AuthUser } from '@aparts/shared';
 import axios, { HttpStatusCode } from 'axios';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginRequest, logoutRequest, refreshRequest, setAccessToken, setLogoutFunction } from '../api/client';
+import {
+  loginRequest,
+  logoutRequest,
+  refreshRequest,
+  setAccessToken,
+  setLogoutFunction,
+} from '../api/client';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -17,15 +23,15 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>('');
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const login = async (email: string, password: string) => {
-    setError("");
+    setError('');
     try {
       const res = await loginRequest(email, password);
-      setUser(res.user)
+      setUser(res.user);
       navigate(`/${res.user.role.toLowerCase()}`);
     } catch (err) {
       setError(
@@ -73,11 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshOnMount();
     return () => {
       setLogoutFunction(null);
-    }
+    };
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, setUser, login, error, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, setUser, login, error, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

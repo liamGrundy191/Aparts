@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react';
 import { loginSchema } from '@aparts/shared';
 import { useAuth } from '../auth/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-900 focus:ring-1 focus:ring-gray-900';
@@ -8,7 +9,8 @@ const inputClass =
 // Neutral until touched; green when valid; red only after the user leaves the field.
 function fieldClass(value: string, valid: boolean, touched: boolean) {
   if (valid) return `${inputClass} border-green-500 focus:border-green-600 focus:ring-green-600`;
-  if (touched && value) return `${inputClass} border-red-400 focus:border-red-500 focus:ring-red-500`;
+  if (touched && value)
+    return `${inputClass} border-red-400 focus:border-red-500 focus:ring-red-500`;
   return inputClass;
 }
 
@@ -34,7 +36,14 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm rounded-xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
         <div className="mb-6 flex flex-col items-center gap-2">
-          <svg viewBox="0 0 24 24" className="h-10 w-10 text-gray-900" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+          <svg
+            viewBox="0 0 24 24"
+            className="h-10 w-10 text-gray-900"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            aria-hidden
+          >
             <path d="M3 10.5 12 3l9 7.5V21H3z" strokeLinejoin="round" />
             <path d="M9 21v-6h6v6" strokeLinejoin="round" />
           </svg>
@@ -55,7 +64,9 @@ export default function LoginPage() {
               aria-invalid={showEmailError}
               className={fieldClass(email, emailValid, touched.email)}
             />
-            {showEmailError && <span className="text-xs text-red-600">Enter a valid email address</span>}
+            {showEmailError && (
+              <span className="text-xs text-red-600">Enter a valid email address</span>
+            )}
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
@@ -70,17 +81,19 @@ export default function LoginPage() {
               aria-invalid={showPasswordError}
               className={fieldClass(password, passwordValid, touched.password)}
             />
-            {showPasswordError && <span className="text-xs text-red-600">At least 8 characters</span>}
+            {showPasswordError && (
+              <span className="text-xs text-red-600">At least 8 characters</span>
+            )}
           </label>
 
-          <button
+          <Button
             type="submit"
-            disabled={!email || !password || showPasswordError || showEmailError || isLoading}
-            className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-gray-900 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            isLoading={isLoading}
+            disabled={!email || !password || showPasswordError || showEmailError}
+            className="mt-2"
           >
-            {isLoading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />}
             Log in
-          </button>
+          </Button>
           {error && <p className="text-red-600">{error}</p>}
         </form>
       </div>
