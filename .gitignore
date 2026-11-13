@@ -13,3 +13,9 @@ coverage/
 *.tsbuildinfo
 .vite/
 .codegraph/
+
+# Impeccable design tooling (local only)
+.github/skills/
+.github/agents/
+.github/hooks/
+.impeccable/
