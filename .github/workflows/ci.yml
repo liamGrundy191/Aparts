@@ -42,6 +42,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm --filter api db:deploy
+      # The e2e tests log in as the seeded demo users, so the fresh CI database needs them
+      - run: pnpm --filter api db:seed
       - run: pnpm test
       - run: pnpm --filter api test:e2e
       - run: pnpm build
