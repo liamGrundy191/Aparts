@@ -20,15 +20,28 @@ async function main() {
       passwordHash,
       firstName: 'Demo',
       lastName: 'Manager',
+      phone: '+972501000000',
       role: Role.MANAGER,
     },
   });
 
   const tenantA = await prisma.user.create({
-    data: { email: 'tenant1@aparts.dev', passwordHash, firstName: 'Dana', lastName: 'Levi' },
+    data: {
+      email: 'tenant1@aparts.dev',
+      passwordHash,
+      firstName: 'Dana',
+      lastName: 'Levi',
+      phone: '+972501000001', // seeded in E.164, the form normalizePhone produces
+    },
   });
   const tenantB = await prisma.user.create({
-    data: { email: 'tenant2@aparts.dev', passwordHash, firstName: 'Omer', lastName: 'Cohen' },
+    data: {
+      email: 'tenant2@aparts.dev',
+      passwordHash,
+      firstName: 'Omer',
+      lastName: 'Cohen',
+      phone: '+972501000002',
+    },
   });
 
   const oak = await prisma.property.create({

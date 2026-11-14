@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { normalizePhone } from '@aparts/shared';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
@@ -6,6 +12,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, randomUUID, timingSafeEqual } from 'crypto';
 import { SafeUser, UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 
 interface RefreshPayload {
@@ -28,12 +35,34 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<AuthTokens> {
-    const user = await this.usersService.findByEmail(dto.email);
+    const user = await this.usersService.findByEmail(dto.email.toLowerCase());
 
     const passwordOk = user ? await bcrypt.compare(dto.password, user.passwordHash) : false;
     if (!user || !passwordOk) {
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    return this.issueTokens(user);
+  }
+
+  async register(dto: RegisterDto): Promise<AuthTokens> {
+    const phone = normalizePhone(dto.phone);
+    if (!phone) {
+      throw new BadRequestException('Enter a valid phone number');
+    }
+    const normalizedDto: RegisterDto = {
+      ...dto,
+      email: dto.email.toLowerCase(),
+      phone,
+    };
+    const userByEmail = await this.usersService.findByEmail(normalizedDto.email);
+    const userByPhone = await this.usersService.findByPhone(normalizedDto.phone);
+
+    if (userByEmail || userByPhone) {
+      throw new ConflictException('Email or Phone are being used');
+    }
+
+    const user = await this.usersService.createUser(normalizedDto);
 
     return this.issueTokens(user);
   }

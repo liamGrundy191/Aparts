@@ -20,7 +20,7 @@ describe('UsersService', () => {
     passwordHash: 'hashed-password',
     firstName: 'Demo',
     lastName: 'Manager',
-    phone: null,
+    phone: '+972501000000',
     role: Role.MANAGER,
     refreshTokenHash: 'hashed-refresh-token',
     createdAt: new Date('2026-01-01'),
