@@ -1,4 +1,4 @@
-import type { AuthResponse } from '@aparts/shared';
+import type { AuthResponse, RegisterInput } from '@aparts/shared';
 import axios, { HttpStatusCode, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
 // The access token lives in memory only; the refresh token is an httpOnly cookie set by the API.
@@ -47,6 +47,24 @@ api.interceptors.response.use(undefined, async (error) => {
   }
   return api(original);
 });
+
+export const registerRequest = async ({
+  email,
+  firstName,
+  lastName,
+  password,
+  phone,
+}: RegisterInput): Promise<AuthResponse> => {
+  const res: AxiosResponse<AuthResponse> = await api.post('/auth/register', {
+    firstName,
+    lastName,
+    email,
+    password,
+    phone,
+  });
+  setAccessToken(res.data.accessToken);
+  return res.data;
+};
 
 export const loginRequest = async (email: string, password: string): Promise<AuthResponse> => {
   const res: AxiosResponse<AuthResponse> = await api.post('/auth/login', { email, password });

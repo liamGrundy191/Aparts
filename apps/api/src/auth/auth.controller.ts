@@ -15,6 +15,7 @@ import type { CookieOptions, Request, Response } from 'express';
 import { AuthService, AuthTokens } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { RequestUser } from './strategies/jwt.strategy';
 
@@ -32,6 +33,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const tokens = await this.authService.login(dto);
+    return this.sendTokens(res, tokens);
+  }
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+    const tokens = await this.authService.register(dto);
     return this.sendTokens(res, tokens);
   }
 

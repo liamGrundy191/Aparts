@@ -8,20 +8,20 @@ The scope is kept small on purpose so the project gets finished, polished and de
 
 ## 2. Roles
 
-| Role      | Can do                                                                                                                              |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `MANAGER` | Full CRUD on properties, units and leases; invite and create tenants; record payments; update maintenance status; see the dashboard |
-| `TENANT`  | Read their own lease, unit and payments; create maintenance requests and see their status                                           |
+| Role      | Can do                                                                                                                                              |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MANAGER` | Full CRUD on properties, units and leases; link a registered tenant to a vacant unit; record payments; update maintenance status; see the dashboard |
+| `TENANT`  | Register themselves; read their own lease, unit and payments; create maintenance requests and see their status                                      |
 
-Everything is enforced on the backend with a `@Roles()` decorator plus a `RolesGuard`. Tenant queries are always scoped to `req.user.id`, so a tenant can never read another tenant's data.
+Everything is enforced on the backend with a `@Roles()` decorator plus a `RolesGuard`. Tenant queries are always scoped to `req.user.id`, so a tenant can never read another tenant's data. The role is **never** read from a request body: the API sets it.
 
 ## 3. MVP features
 
-1. **Auth**: register (the first user becomes the manager, or the manager is created by a seed), login, logout, JWT access token (15 min) + refresh token (7 days, httpOnly cookie, stored hashed in the DB), and `GET /auth/me`.
+1. **Auth**: public register (always creates a `TENANT`; the manager comes from the seed), login, logout, JWT access token (15 min) + refresh token (7 days, httpOnly cookie, stored hashed in the DB), and `GET /auth/me`.
 2. **Properties**: name, address, notes.
 3. **Units**: belong to a property; unit number, bedrooms, rent amount, status (`VACANT`/`OCCUPIED`).
-4. **Tenants**: the manager creates a tenant account (email + temporary password).
-5. **Leases**: link a tenant to a unit with a start date, end date, monthly rent and status (`ACTIVE`/`ENDED`). Creating a lease marks the unit `OCCUPIED`.
+4. **Tenants**: tenants register themselves with first name, last name, email, phone and password. Email and phone are both **required and unique**. There's no manager "tenants list": a manager's tenants are the ones with a lease in their properties.
+5. **Leases**: on the property page, a vacant unit's row gets an "Add tenant" action. It opens a dialog with the tenant's email and phone, start date, end date and monthly rent (defaults to the unit's rent). The API links the lease only if **both** email and phone match one registered tenant, and answers a generic "no tenant found" otherwise, so the form can't be used to check whether an email exists. Creating a lease marks the unit `OCCUPIED`, in one transaction.
 6. **Payments**: the manager records payments for a lease (amount, date, period month, method). A status of paid, partial or overdue is computed per month.
 7. **Maintenance requests**: the tenant creates one (title, description, priority). The manager moves it through `OPEN` → `IN_PROGRESS` → `DONE`.
 8. **Manager dashboard**: occupancy rate, rent expected vs. collected this month, overdue leases, open maintenance count.
@@ -93,7 +93,7 @@ model User {
   passwordHash String
   firstName    String
   lastName     String
-  phone        String?
+  phone        String   @unique // required: used with email to link a lease
   role         Role     @default(TENANT)
   refreshTokenHash String?
   leases       Lease[]
@@ -167,25 +167,25 @@ Business rule: a unit can have at most one `ACTIVE` lease. Check this in `Leases
 
 ## 7. API endpoints
 
-| Method   | Path                                                 | Role          |
-| -------- | ---------------------------------------------------- | ------------- |
-| POST     | `/auth/login`, `/auth/refresh`, `/auth/logout`       | public / auth |
-| GET      | `/auth/me`                                           | any           |
-| CRUD     | `/properties`, `/properties/:id/units`, `/units/:id` | MANAGER       |
-| GET/POST | `/tenants`                                           | MANAGER       |
-| CRUD     | `/leases`, `POST /leases/:id/end`                    | MANAGER       |
-| GET/POST | `/leases/:id/payments`                               | MANAGER       |
-| GET      | `/dashboard/summary`                                 | MANAGER       |
-| GET      | `/me/lease`, `/me/payments`                          | TENANT        |
-| GET/POST | `/maintenance` (scoped by role)                      | both          |
-| PATCH    | `/maintenance/:id/status`                            | MANAGER       |
+| Method   | Path                                                             | Role          |
+| -------- | ---------------------------------------------------------------- | ------------- |
+| POST     | `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` | public / auth |
+| GET      | `/auth/me`                                                       | any           |
+| CRUD     | `/properties`, `/properties/:id/units`, `/units/:id`             | MANAGER       |
+| POST     | `/units/:id/leases` (body: tenant email + phone, dates, rent)    | MANAGER       |
+| CRUD     | `/leases`, `POST /leases/:id/end`                                | MANAGER       |
+| GET/POST | `/leases/:id/payments`                                           | MANAGER       |
+| GET      | `/dashboard/summary`                                             | MANAGER       |
+| GET      | `/me/lease`, `/me/payments`                                      | TENANT        |
+| GET/POST | `/maintenance` (scoped by role)                                  | both          |
+| PATCH    | `/maintenance/:id/status`                                        | MANAGER       |
 
 Swagger docs are served at `/api/docs`. List endpoints get simple pagination (`?page&limit`).
 
 ## 8. Frontend pages
 
-- **Public:** Login
-- **Manager:** Dashboard (stat cards), Properties list/detail (with units), Tenants, Leases (create and end), Payments (per lease, add payment), Maintenance board (filter by status)
+- **Public:** Login, Register (linked from each other)
+- **Manager:** Dashboard (stat cards), Properties list/detail (with units, and "Add tenant" on vacant units), Leases (end a lease), Payments (per lease, add payment), Maintenance board (filter by status)
 - **Tenant:** My Lease, My Payments, Maintenance (create a request, see the list)
 - Role-based routing: `<ProtectedRoute>` + `<RoleRoute role="MANAGER">`. An axios interceptor refreshes the access token automatically when a request returns 401.
 
@@ -193,7 +193,7 @@ Swagger docs are served at `/api/docs`. List endpoints get simple pagination (`?
 
 1. **Setup**: pnpm workspace, the `api`/`web`/`shared` apps, ESLint + Prettier, Postgres in docker-compose, Prisma schema + first migration + seed (1 manager, 2 properties, units, 2 tenants)
 2. **Auth**: login, refresh and logout, JWT strategy, `RolesGuard`, `@Roles`/`@CurrentUser` decorators, e2e tests
-3. **Core CRUD**: properties, units, tenants and leases (API + manager UI)
+3. **Core CRUD**: properties and units, tenant self-registration, then leases (API + UI)
 4. **Payments + maintenance**: API + UI for both roles
 5. **Dashboard**: aggregate queries + stat cards
 6. **Docker + CI**: multi-stage Dockerfiles, `docker-compose.prod.yml`, GitHub Actions (install → lint → test → build)
@@ -205,7 +205,7 @@ Swagger docs are served at `/api/docs`. List endpoints get simple pagination (`?
 - `pnpm test` passes. It covers unit tests for the lease and payment logic and e2e tests for login, refresh, and a tenant getting **403** on manager routes
 - `docker compose -f docker-compose.prod.yml up --build` runs the full stack
 - CI is green on every push to `main`
-- Manual check on the live URL: log in as the demo manager and create a property → unit → tenant → lease → payment; log in as the tenant and see the lease and payment, submit a maintenance request; the manager marks it `DONE`
+- Manual check on the live URL: register as a tenant; log in as the demo manager and create a property → unit → lease for that tenant (by email + phone) → payment; log in as the tenant and see the lease and payment, submit a maintenance request; the manager marks it `DONE`
 
 ## 11. Auth follow-ups
 
@@ -220,7 +220,29 @@ Small issues found in the review of `feat/auth`. None of them block the MVP.
 - [ ] **`UsersService` unit tests are still `it.todo`** (`users.service.spec.ts`).
 - Accepted trade-off: an access token stays valid for up to 15 minutes after logout or after the user is deleted, because `JwtStrategy` doesn't look the user up.
 
-## 12. v2: Property images (S3)
+## 12. Next up: register, then leases
+
+Who builds what: Claude does the UI legwork (shared Zod schemas and types, forms, validation, dialogs). The tricky parts are yours to learn on.
+
+**Register**
+
+- [x] _(Claude)_ `registerSchema` / `RegisterInput` in `packages/shared/src/auth.ts`, `RegisterPage` at `/register`, links between login and register.
+- [x] _(you)_ Migration: make `User.phone` required and `@unique`. Give the seeded users phone numbers first, or the migration fails.
+- [x] _(you)_ `POST /auth/register`: DTO mirroring `registerSchema`, role set to `TENANT` in the service, password hashed the same way as the seed, returns tokens like login. **400** bad body, **409** email or phone taken.
+- [x] _(you)_ Decide how email and phone are normalised before saving and comparing (`Dana@X.com` vs `dana@x.com`, `050-123 4567` vs `0501234567`).
+- [x] _(you)_ A `register` in `AuthContext` + a request in `api/client.ts`, wired into the `TODO(you)` in `RegisterPage`.
+- [x] _(Claude)_ e2e, once your endpoint exists: a body with `"role": "MANAGER"` is rejected with 400 and creates nobody; duplicate email and duplicate phone give 409; no hash in any response.
+
+**Leases**
+
+- [ ] _(Claude)_ Lease Zod schema and types, the "Add tenant" action on vacant unit rows, and the lease form dialog.
+- [ ] _(you)_ `POST /units/:id/leases`: find the tenant where **both** email and phone match, create the lease and mark the unit `OCCUPIED` in one `$transaction`. Allow only one `ACTIVE` lease per unit (a partial unique index, not just a check).
+- [ ] _(you)_ Hooks and invalidation, `GET /me/lease` and `MyLeasePage`.
+- [ ] _(Claude)_ e2e, once your endpoints exist: a tenant can't read another tenant's lease; a wrong phone gives the same error as an unknown email.
+
+**Later: manager sign-up.** The register form has no role field, so adding managers later doesn't break it. But `Property` has no `managerId` yet, so the app assumes one manager and every manager can see every property. Before managers can sign up: add `managerId` to `Property`, scope every property, unit and lease query to the current manager, and add a separate way to become a manager (an invite code or a seed-only admin), never a role picker on the public form.
+
+## 13. v2: Property images (S3)
 
 The MVP shows a generated placeholder on each property card. Real image uploads come after the MVP is deployed.
 

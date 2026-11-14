@@ -1,21 +1,25 @@
-import type { AuthUser } from '@aparts/shared';
+import type { AuthUser, RegisterInput } from '@aparts/shared';
 import axios, { HttpStatusCode } from 'axios';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   loginRequest,
   logoutRequest,
   refreshRequest,
+  registerRequest,
   setAccessToken,
   setLogoutFunction,
 } from '../api/client';
+import { getErrorMessage } from '../lib/errors';
 
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   setUser: (user: AuthUser | null) => void;
   login: (email: string, password: string) => Promise<void>;
+  register: (values: RegisterInput) => Promise<void>;
   error: string;
+  clearError: () => void;
   logout: () => Promise<void>;
 }
 
@@ -26,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Stable, so pages can call it in a mount effect without re-running it every render.
+  const clearError = useCallback(() => setError(''), []);
 
   const login = async (email: string, password: string) => {
     setError('');
@@ -38,6 +44,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         axios.isAxiosError(err) && err.response?.status === HttpStatusCode.Unauthorized
           ? 'Email or password is incorrect'
           : 'Something went wrong, please try again',
+      );
+    }
+  };
+
+  const register = async (values: RegisterInput) => {
+    setError('');
+    try {
+      const res = await registerRequest(values);
+      setUser(res.user);
+      navigate(`/${res.user.role.toLowerCase()}`);
+    } catch (err) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      setError(
+        status === HttpStatusCode.Conflict
+          ? 'Email or Phone are already being used'
+          : status === HttpStatusCode.BadRequest // the API's own message, e.g. "Enter a valid phone number"
+            ? (getErrorMessage(err) ?? 'Please check your details')
+            : 'Something went wrong, please try again',
       );
     }
   };
@@ -75,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    setError('');
     setLogoutFunction(logoutUtil);
     refreshOnMount();
     return () => {
@@ -83,7 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, setUser, login, error, logout }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, setUser, login, register, error, clearError, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
