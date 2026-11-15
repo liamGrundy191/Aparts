@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
@@ -5,17 +6,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ImagePlaceholder } from './ImagePlaceholder';
 
 export interface PropertyCardProps {
-  id: string;
+  /** Where the card links to, e.g. `/manager/properties/${id}` or `/tenant/leases/${id}` */
+  to: string;
   name: string;
   address: string;
   city: string;
-  unitCount: number;
+  /** The small line under the address, e.g. "4 units" or "Unit 3A · $5,200.00/mo" */
+  footer: ReactNode;
 }
 
-export function PropertyCard({ id, name, address, city, unitCount }: PropertyCardProps) {
+export function PropertyCard({ to, name, address, city, footer }: PropertyCardProps) {
   return (
     <Link
-      to={`/manager/properties/${id}`}
+      to={to}
       className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Card className="pt-0 transition-shadow hover:shadow-md">
@@ -28,9 +31,7 @@ export function PropertyCard({ id, name, address, city, unitCount }: PropertyCar
               {address}, {city}
             </span>
           </CardDescription>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {unitCount} {unitCount === 1 ? 'unit' : 'units'}
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">{footer}</p>
         </CardContent>
       </Card>
     </Link>

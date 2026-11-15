@@ -6,8 +6,9 @@ import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/manager/DashboardPage';
-import MyLeasePage from './pages/tenant/MyLeasePage';
+import MyLeasesPage from './pages/tenant/MyLeasesPage';
 import PropertyPage from './pages/manager/PropertyPage';
+import LeasePage from './pages/tenant/LeasePage';
 
 export default function App() {
   return (
@@ -24,7 +25,9 @@ export default function App() {
           </Route>
 
           <Route element={<RoleRoute role={Role.TENANT} />}>
-            <Route path="/tenant" element={<MyLeasePage />} />
+            <Route path="/tenant" element={<MyLeasesPage />} />
+            <Route path="/tenant/leases/:leaseId" element={<LeasePage />} />
+
             {/* my payments, my requests */}
           </Route>
         </Route>

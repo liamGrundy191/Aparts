@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { UnitStatus, type PropertyWithUnits } from '@aparts/shared';
 import { MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardTitle } from './ui/card';
@@ -23,14 +24,16 @@ export function PropertyDetailsSkeleton() {
   );
 }
 
-interface props {
-  property: PropertyWithUnits;
+interface PropertyHeaderProps {
+  name: string;
+  address: string;
+  city: string;
+  /** Extra content under the address, e.g. the manager's unit counts and notes */
+  children?: ReactNode;
 }
 
-export default function PropertyDetails({ property }: props) {
-  const { address, city, name, units, notes } = property;
-  const occupied = units.filter((u) => u.status === UnitStatus.OCCUPIED).length;
-
+/** The picture, name and address of a property. Shared by the manager's and the tenant's pages. */
+export function PropertyHeader({ name, address, city, children }: PropertyHeaderProps) {
   return (
     <Card className="pt-0">
       <ImagePlaceholder name={name} className="aspect-[4/1]" />
@@ -44,21 +47,36 @@ export default function PropertyDetails({ property }: props) {
             {address}, {city}
           </CardDescription>
         </div>
-
-        <div className="flex flex-wrap gap-2 text-xs">
-          <span className="rounded-md bg-muted px-2 py-1">
-            {units.length} {units.length === 1 ? 'unit' : 'units'}
-          </span>
-          <span className="rounded-md bg-emerald-100 px-2 py-1 text-emerald-800">
-            {occupied} occupied
-          </span>
-          <span className="rounded-md bg-amber-100 px-2 py-1 text-amber-800">
-            {units.length - occupied} vacant
-          </span>
-        </div>
-
-        {notes && <p className="whitespace-pre-line text-muted-foreground">{notes}</p>}
+        {children}
       </CardContent>
     </Card>
+  );
+}
+
+interface props {
+  property: PropertyWithUnits;
+}
+
+/** The manager's view: the header plus unit counts and the manager's private notes. */
+export default function PropertyDetails({ property }: props) {
+  const { address, city, name, units, notes } = property;
+  const occupied = units.filter((u) => u.status === UnitStatus.OCCUPIED).length;
+
+  return (
+    <PropertyHeader name={name} address={address} city={city}>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="rounded-md bg-muted px-2 py-1">
+          {units.length} {units.length === 1 ? 'unit' : 'units'}
+        </span>
+        <span className="rounded-md bg-emerald-100 px-2 py-1 text-emerald-800">
+          {occupied} occupied
+        </span>
+        <span className="rounded-md bg-amber-100 px-2 py-1 text-amber-800">
+          {units.length - occupied} vacant
+        </span>
+      </div>
+
+      {notes && <p className="whitespace-pre-line text-muted-foreground">{notes}</p>}
+    </PropertyHeader>
   );
 }

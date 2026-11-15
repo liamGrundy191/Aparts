@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { moneyField } from './money';
 
 export const createUnitSchema = z.object({
   unitNumber: z.string().trim().nonempty('unit number is required').max(20),
@@ -7,11 +8,8 @@ export const createUnitSchema = z.object({
     .int('must be a whole number')
     .min(0)
     .max(20),
-  rentAmount: z
-    .number({ invalid_type_error: 'rent amount is required' })
-    .positive()
-    .max(99_999_999.99)
-    .refine((n) => Math.round(n * 100) === n * 100, 'max 2 decimal places'),
+  // The price for the next tenant. What a tenant actually owes is the lease's monthlyRent.
+  askingRent: moneyField('asking rent is required'),
 });
 
 export type CreateUnitInput = z.infer<typeof createUnitSchema>;

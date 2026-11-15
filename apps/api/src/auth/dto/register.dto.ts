@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-
-const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
+import { trim } from '../../common/validators';
 
 // Mirrors registerSchema in @aparts/shared. No `role`: the API decides it.
 export class RegisterDto {

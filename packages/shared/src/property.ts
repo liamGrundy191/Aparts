@@ -40,7 +40,7 @@ export interface Unit {
   propertyId: string;
   unitNumber: string;
   bedrooms: number;
-  rentAmount: string;
+  askingRent: string; // a string: Prisma sends Decimal columns as strings
   status: UnitStatus;
 }
 

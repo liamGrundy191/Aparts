@@ -51,8 +51,8 @@ async function main() {
       city: 'Tel Aviv',
       units: {
         create: [
-          { unitNumber: '1', bedrooms: 2, rentAmount: 5200, status: UnitStatus.OCCUPIED },
-          { unitNumber: '2', bedrooms: 3, rentAmount: 6400 },
+          { unitNumber: '1', bedrooms: 2, askingRent: 5200, status: UnitStatus.OCCUPIED },
+          { unitNumber: '2', bedrooms: 3, askingRent: 6400 },
         ],
       },
     },
@@ -66,17 +66,18 @@ async function main() {
       city: 'Haifa',
       units: {
         create: [
-          { unitNumber: 'A', bedrooms: 1, rentAmount: 3800, status: UnitStatus.OCCUPIED },
-          { unitNumber: 'B', bedrooms: 2, rentAmount: 4500 },
+          { unitNumber: 'A', bedrooms: 1, askingRent: 3800, status: UnitStatus.OCCUPIED },
+          { unitNumber: 'B', bedrooms: 2, askingRent: 4500 },
         ],
       },
     },
     include: { units: true },
   });
 
-  const year = new Date().getFullYear();
-  const startDate = new Date(year, 0, 1);
-  const endDate = new Date(year + 1, 0, 1);
+  // Lease dates are stored as UTC midnight, like the API does for YYYY-MM-DD input
+  const year = new Date().getUTCFullYear();
+  const startDate = new Date(Date.UTC(year, 0, 1));
+  const endDate = new Date(Date.UTC(year + 1, 0, 1));
 
   await prisma.lease.create({
     data: {

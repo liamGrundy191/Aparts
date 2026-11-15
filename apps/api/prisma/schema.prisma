@@ -66,7 +66,7 @@ model Unit {
   property   Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   unitNumber String
   bedrooms   Int
-  rentAmount Decimal              @db.Decimal(10, 2)
+  askingRent Decimal              @db.Decimal(10, 2) // price for the next tenant; what a tenant owes is Lease.monthlyRent
   status     UnitStatus           @default(VACANT)
   leases     Lease[]
   requests   MaintenanceRequest[]

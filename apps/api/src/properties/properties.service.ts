@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { FOREIGN_KEY_VIOLATION, prismaCode, RECORD_NOT_FOUND } from '../common/utils';
 
 @Injectable()
 export class PropertiesService {
@@ -15,8 +16,11 @@ export class PropertiesService {
         where: { id },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-        throw new NotFoundException();
+      const code = prismaCode(error);
+      if (code === RECORD_NOT_FOUND) throw new NotFoundException();
+      // Units are deleted with the property, but a unit with leases or requests can't be
+      if (code === FOREIGN_KEY_VIOLATION) {
+        throw new ConflictException('Property has units with leases or maintenance requests');
       }
       throw error;
     }
