@@ -30,7 +30,7 @@ describe('Units (e2e)', () => {
     asManager(request(app.getHttpServer()).post(`/api/properties/${propertyId}/units`)).send({
       unitNumber,
       bedrooms: 2,
-      rentAmount: 4200.5,
+      askingRent: 4200.5,
     });
 
   beforeAll(async () => {
@@ -64,7 +64,7 @@ describe('Units (e2e)', () => {
     return request(app.getHttpServer())
       .post(`/api/properties/${propertyId}/units`)
       .set('Authorization', `Bearer ${tenantToken}`)
-      .send({ unitNumber: 'T', bedrooms: 1, rentAmount: 1000 })
+      .send({ unitNumber: 'T', bedrooms: 1, askingRent: 1000 })
       .expect(403);
   });
 
@@ -72,11 +72,11 @@ describe('Units (e2e)', () => {
     const server = app.getHttpServer();
     const post = () => asManager(request(server).post(`/api/properties/${propertyId}/units`));
     await post().send({ unitNumber: 'X' }).expect(400);
-    await post().send({ unitNumber: 'X', bedrooms: 1.5, rentAmount: 1000 }).expect(400);
-    await post().send({ unitNumber: 'X', bedrooms: 1, rentAmount: -5 }).expect(400);
-    await post().send({ unitNumber: 'X', bedrooms: 1, rentAmount: 10.999 }).expect(400);
+    await post().send({ unitNumber: 'X', bedrooms: 1.5, askingRent: 1000 }).expect(400);
+    await post().send({ unitNumber: 'X', bedrooms: 1, askingRent: -5 }).expect(400);
+    await post().send({ unitNumber: 'X', bedrooms: 1, askingRent: 10.999 }).expect(400);
     await post()
-      .send({ unitNumber: 'X', bedrooms: 1, rentAmount: 1, status: 'OCCUPIED' })
+      .send({ unitNumber: 'X', bedrooms: 1, askingRent: 1, status: 'OCCUPIED' })
       .expect(400);
   });
 
@@ -92,7 +92,7 @@ describe('Units (e2e)', () => {
 
   it('returns 404 when the property does not exist', () => {
     return asManager(request(app.getHttpServer()).post(`/api/properties/${MISSING_ID}/units`))
-      .send({ unitNumber: '1', bedrooms: 1, rentAmount: 1000 })
+      .send({ unitNumber: '1', bedrooms: 1, askingRent: 1000 })
       .expect(404);
   });
 

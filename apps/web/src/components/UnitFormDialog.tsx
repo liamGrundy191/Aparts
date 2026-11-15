@@ -30,7 +30,7 @@ interface UnitFormDialogProps {
 
 const emptyValues: CreateUnitInput = {
   bedrooms: 0,
-  rentAmount: 0,
+  askingRent: 0,
   unitNumber: '',
 };
 
@@ -99,13 +99,13 @@ export function UnitFormDialog({
             />
           </FormField>
 
-          <FormField id="rentAmount" label="Rent amount" error={errors.rentAmount?.message}>
+          <FormField id="askingRent" label="Asking rent" error={errors.askingRent?.message}>
             <Input
-              id="rentAmount"
+              id="askingRent"
               type="number"
               step="0.01"
-              aria-invalid={!!errors.rentAmount}
-              {...register('rentAmount', { valueAsNumber: true })}
+              aria-invalid={!!errors.askingRent}
+              {...register('askingRent', { valueAsNumber: true })}
             />
           </FormField>
 

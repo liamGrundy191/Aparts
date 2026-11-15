@@ -27,5 +27,5 @@ export class CreateUnitDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
   @Max(99_999_999.99) // fits the Decimal(10, 2) column
-  rentAmount!: number;
+  askingRent!: number;
 }

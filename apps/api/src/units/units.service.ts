@@ -1,17 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUnitDto } from './dto/create-unit.dto';
 import { UpdateUnitDto } from './dto/update-unit.dto';
-
-// Prisma error codes: https://www.prisma.io/docs/orm/reference/error-reference
-const UNIQUE_VIOLATION = 'P2002'; // unitNumber already used in this property
-const FOREIGN_KEY_VIOLATION = 'P2003'; // property missing, or unit still has leases/requests
-const RECORD_NOT_FOUND = 'P2025';
-
-function prismaCode(error: unknown): string | undefined {
-  return error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
-}
+import {
+  prismaCode,
+  FOREIGN_KEY_VIOLATION,
+  UNIQUE_VIOLATION,
+  RECORD_NOT_FOUND,
+} from '../common/utils';
 
 @Injectable()
 export class UnitsService {

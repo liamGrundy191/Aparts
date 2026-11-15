@@ -19,9 +19,9 @@ Everything is enforced on the backend with a `@Roles()` decorator plus a `RolesG
 
 1. **Auth**: public register (always creates a `TENANT`; the manager comes from the seed), login, logout, JWT access token (15 min) + refresh token (7 days, httpOnly cookie, stored hashed in the DB), and `GET /auth/me`.
 2. **Properties**: name, address, notes.
-3. **Units**: belong to a property; unit number, bedrooms, rent amount, status (`VACANT`/`OCCUPIED`).
+3. **Units**: belong to a property; unit number, bedrooms, asking rent, status (`VACANT`/`OCCUPIED`). The asking rent is the price for the next tenant. It is never what a tenant owes: that is the lease's monthly rent, fixed when the lease is created.
 4. **Tenants**: tenants register themselves with first name, last name, email, phone and password. Email and phone are both **required and unique**. There's no manager "tenants list": a manager's tenants are the ones with a lease in their properties.
-5. **Leases**: on the property page, a vacant unit's row gets an "Add tenant" action. It opens a dialog with the tenant's email and phone, start date, end date and monthly rent (defaults to the unit's rent). The API links the lease only if **both** email and phone match one registered tenant, and answers a generic "no tenant found" otherwise, so the form can't be used to check whether an email exists. Creating a lease marks the unit `OCCUPIED`, in one transaction.
+5. **Leases**: on the property page, a vacant unit's row gets an "Add tenant" action. It opens a dialog with the tenant's email and phone, start date, end date and monthly rent (defaults to the unit's asking rent). The API links the lease only if **both** email and phone match one registered tenant, and answers a generic "no tenant found" otherwise, so the form can't be used to check whether an email exists. Creating a lease marks the unit `OCCUPIED`, in one transaction. A tenant can hold leases on several units; a unit can have only one active lease. The tenant sees their leases as cards that look like the manager's property cards, and each opens a lease page with the property header, their unit and the lease terms. The tenant API only ever returns the tenant's own lease, their unit and the property's name and address: never the property's notes or its other units.
 6. **Payments**: the manager records payments for a lease (amount, date, period month, method). A status of paid, partial or overdue is computed per month.
 7. **Maintenance requests**: the tenant creates one (title, description, priority). The manager moves it through `OPEN` → `IN_PROGRESS` → `DONE`.
 8. **Manager dashboard**: occupancy rate, rent expected vs. collected this month, overdue leases, open maintenance count.
@@ -117,7 +117,7 @@ model Unit {
   property    Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   unitNumber  String
   bedrooms    Int
-  rentAmount  Decimal    @db.Decimal(10, 2)
+  askingRent  Decimal    @db.Decimal(10, 2) // price for the next tenant
   status      UnitStatus @default(VACANT)
   leases      Lease[]
   requests    MaintenanceRequest[]
@@ -132,7 +132,7 @@ model Lease {
   tenant      User        @relation(fields: [tenantId], references: [id])
   startDate   DateTime
   endDate     DateTime
-  monthlyRent Decimal     @db.Decimal(10, 2)
+  monthlyRent Decimal     @db.Decimal(10, 2) // what the tenant owes; the only source for anything financial
   status      LeaseStatus @default(ACTIVE)
   payments    Payment[]
 }
@@ -163,7 +163,9 @@ model MaintenanceRequest {
 }
 ```
 
-Business rule: a unit can have at most one `ACTIVE` lease. Check this in `LeasesService` inside a Prisma transaction.
+Business rule: a unit can have at most one `ACTIVE` lease. Check this in `LeasesService` inside a Prisma transaction, and back it with a partial unique index (unique on `unitId` where `status = 'ACTIVE'`), because two requests at the same moment can both pass the check. A tenant may have several leases.
+
+Dates: lease dates travel as `YYYY-MM-DD` strings and are stored as UTC midnight. Always format them in UTC (`formatDate` in `apps/web/src/lib/format.ts`), or they can show a day early.
 
 ## 7. API endpoints
 
@@ -176,7 +178,7 @@ Business rule: a unit can have at most one `ACTIVE` lease. Check this in `Leases
 | CRUD     | `/leases`, `POST /leases/:id/end`                                | MANAGER       |
 | GET/POST | `/leases/:id/payments`                                           | MANAGER       |
 | GET      | `/dashboard/summary`                                             | MANAGER       |
-| GET      | `/me/lease`, `/me/payments`                                      | TENANT        |
+| GET      | `/me/leases`, `/me/leases/:id`, `/me/payments`                   | TENANT        |
 | GET/POST | `/maintenance` (scoped by role)                                  | both          |
 | PATCH    | `/maintenance/:id/status`                                        | MANAGER       |
 
@@ -186,7 +188,7 @@ Swagger docs are served at `/api/docs`. List endpoints get simple pagination (`?
 
 - **Public:** Login, Register (linked from each other)
 - **Manager:** Dashboard (stat cards), Properties list/detail (with units, and "Add tenant" on vacant units), Leases (end a lease), Payments (per lease, add payment), Maintenance board (filter by status)
-- **Tenant:** My Lease, My Payments, Maintenance (create a request, see the list)
+- **Tenant:** My leases (cards) and a lease page per lease, My Payments, Maintenance (create a request, see the list)
 - Role-based routing: `<ProtectedRoute>` + `<RoleRoute role="MANAGER">`. An axios interceptor refreshes the access token automatically when a request returns 401.
 
 ## 9. Milestones
@@ -222,7 +224,16 @@ Small issues found in the review of `feat/auth`. None of them block the MVP.
 
 ## 12. Next up: register, then leases
 
-Who builds what: Claude does the UI legwork (shared Zod schemas and types, forms, validation, dialogs). The tricky parts are yours to learn on.
+Who builds what: Claude does everything that repeats a pattern you already know (shared schemas and types, forms, dialogs, query hooks, pages, module boilerplate, tests). You do the parts that teach something new, marked `TODO(you)` in the code.
+
+Yours for the rest of the MVP:
+
+- **Leases backend** (below): a transaction, a race condition, and scoping data to the logged-in user.
+- **Payment status** (paid / partial / overdue per month): a pure function with real edge cases (money, month boundaries).
+- **One dashboard aggregate query** (`groupBy` / `aggregate`).
+- **Deploy**: Docker, env vars, production migrations, CORS and the refresh cookie across domains.
+
+Claude builds the rest: the payments and dashboard UI and CRUD, and maintenance requests.
 
 **Register**
 
@@ -235,10 +246,16 @@ Who builds what: Claude does the UI legwork (shared Zod schemas and types, forms
 
 **Leases**
 
-- [ ] _(Claude)_ Lease Zod schema and types, the "Add tenant" action on vacant unit rows, and the lease form dialog.
-- [ ] _(you)_ `POST /units/:id/leases`: find the tenant where **both** email and phone match, create the lease and mark the unit `OCCUPIED` in one `$transaction`. Allow only one `ACTIVE` lease per unit (a partial unique index, not just a check).
-- [ ] _(you)_ Hooks and invalidation, `GET /me/lease` and `MyLeasePage`.
-- [ ] _(Claude)_ e2e, once your endpoints exist: a tenant can't read another tenant's lease; a wrong phone gives the same error as an unknown email.
+- [x] _(Claude)_ Rename `Unit.rentAmount` to `askingRent` (migration, DTO, shared schema, UI, seed, tests).
+- [x] _(Claude)_ `createLeaseSchema` / `CreateLeaseInput` and the `Lease` / `MyLease` types in `packages/shared/src/lease.ts`; `CreateLeaseDto` in `apps/api/src/leases/dto`; `LeaseFormDialog` and the "Add tenant" action on vacant unit rows.
+- [x] _(Claude)_ Tenant building blocks: `PropertyCard` takes a link and a footer, `PropertyHeader` (the property page header without the manager's counts and notes), `LeaseCard` for the list and `LeaseSummary` for the lease page.
+- [x] _(you)_ `POST /units/:id/leases` (`MANAGER`), using `CreateLeaseDto`: normalise the email and phone like register does, find the `TENANT` where **both** match (one generic 404 otherwise), then create the lease and mark the unit `OCCUPIED` in one `$transaction`. Store the dates with `new Date(dto.startDate)` (UTC midnight).
+- [x] _(you)_ Migration with a partial unique index so a unit can have only one `ACTIVE` lease (raw SQL: Prisma's schema can't express it). Turn its `P2002` into a 409.
+- [x] _(you)_ `GET /me/leases` and `GET /me/leases/:id` (`TENANT`), always scoped to `req.user.id` and returning only the `MyLease` shape. Someone else's lease id gives 404, not 403.
+- [x] _(Claude)_ `useCreateLease` wired into `UnitTable`, `useMyLeases` / `useMyLease`, the "My leases" page and the lease page at `/tenant/leases/:leaseId`. The `LeasesModule` skeleton is registered; your TODOs are in `leases.controller.ts` and `leases.service.ts`.
+- [x] _(Claude)_ e2e, once your endpoints exist: a wrong phone gives the same error as an unknown email; a second active lease on a unit is rejected, also when sent at the same moment; a tenant gets 403 on the manager route; a tenant can't read another tenant's lease. Then a browser run of the whole flow.
+
+**Later: info for tenants.** Tenants never see `Property.notes`: those are the manager's private notes. If a manager needs to tell tenants something (e.g. "trash day is Tuesday"), add one separate property field that the manager writes and tenants can read.
 
 **Later: manager sign-up.** The register form has no role field, so adding managers later doesn't break it. But `Property` has no `managerId` yet, so the app assumes one manager and every manager can see every property. Before managers can sign up: add `managerId` to `Property`, scope every property, unit and lease query to the current manager, and add a separate way to become a manager (an invite code or a seed-only admin), never a role picker on the public form.
 

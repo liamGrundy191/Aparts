@@ -113,11 +113,11 @@ export default function DashboardPage() {
         {data.data.map((property) => (
           <PropertyCard
             key={property.id}
-            id={property.id}
+            to={`/manager/properties/${property.id}`}
             name={property.name}
             city={property.city}
             address={property.address}
-            unitCount={property._count.units}
+            footer={`${property._count.units} ${property._count.units === 1 ? 'unit' : 'units'}`}
           />
         ))}
       </Grid>
