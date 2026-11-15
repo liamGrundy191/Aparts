@@ -1,9 +1,4 @@
-import {
-  UnitStatus,
-  type CreateLeaseInput,
-  type CreateUnitInput,
-  type Unit,
-} from '@aparts/shared';
+import { UnitStatus, type CreateLeaseInput, type CreateUnitInput, type Unit } from '@aparts/shared';
 import { Pencil, Plus, Trash2, UserPlus } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
 import { LeaseFormDialog } from './LeaseFormDialog';
